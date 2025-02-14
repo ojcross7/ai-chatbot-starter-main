@@ -2,111 +2,68 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { z } from 'zod';
 
-// Rate limiting configuration
+// ✅ Rate limit settings (prevents spam)
 const RATE_LIMIT = {
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 15,
 };
 
-// Request validation schema
+// ✅ Request validation schema
 const requestSchema = z.object({
   messages: z.array(z.object({
     role: z.enum(['user', 'assistant', 'system']),
-    content: z.string().min(1)
+    content: z.string().min(1),
   })).min(1),
   model: z.enum(['gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo']).optional().default('gpt-4-turbo'),
   temperature: z.number().min(0).max(2).optional().default(0.7),
   max_tokens: z.number().min(1).max(4096).optional().default(2048),
-  stream: z.boolean().optional().default(true)
+  stream: z.boolean().optional().default(false),
 });
 
 type OpenAIRequest = z.infer<typeof requestSchema>;
-
-// Simple in-memory rate limiter
 const requestCounts = new Map<string, number>();
 
 export async function POST(req: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
 
-  // Rate limiting check
-  const currentCount = requestCounts.get(ip) || 0;
-  if (currentCount >= RATE_LIMIT.maxRequests) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded' },
-      { 
-        status: 429,
-        headers: {
-          'Retry-After': `${RATE_LIMIT.windowMs / 1000}`,
-          'X-RateLimit-Limit': RATE_LIMIT.maxRequests.toString(),
-          'X-RateLimit-Remaining': '0',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-      }
-    );
+  // ✅ Rate limiting
+  if ((requestCounts.get(ip) || 0) >= RATE_LIMIT.maxRequests) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   try {
-    // Validate environment configuration
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable not configured');
-    }
-
-    // Validate request body
+    if (!apiKey) throw new Error('API key missing');
+    
     const requestBody = await req.json();
     const validation = requestSchema.safeParse(requestBody);
-    
     if (!validation.success) {
-      return NextResponse.json(
-        { 
-          error: 'Invalid request format',
-          details: validation.error.flatten() 
-        },
-        { 
-          status: 400,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        }
-      );
+      return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
     }
 
     const { messages, model, temperature, max_tokens, stream } = validation.data;
+    const openai = new OpenAI({ apiKey, timeout: 30000 });
 
-    // Initialize OpenAI client
-    const openai = new OpenAI({
-      apiKey: apiKey,
-      timeout: 30000 // 30 seconds timeout
-    });
-
-    // Create chat completion
-    const completion = await openai.chat.completions.create({
-      model,
-      messages,
-      temperature,
-      max_tokens,
-      stream
-    });
-
-    // Handle streaming response
     if (stream) {
+      const completion = await openai.chat.completions.create({
+        model,
+        messages,
+        temperature,
+        max_tokens,
+        stream: true,
+      });
+
+      // ✅ Ensure the response stream is handled correctly
       const encoder = new TextEncoder();
-      
-      const readableStream = new ReadableStream({
+      const responseStream = new ReadableStream({
         async start(controller) {
           try {
-            // Type assertion for streaming chunks
-            for await (const chunk of completion as AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>) {
+            for await (const chunk of completion) {
               const content = chunk.choices[0]?.delta?.content || '';
-              const data = `data: ${JSON.stringify(content)}\n\n`;
-              controller.enqueue(encoder.encode(data));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(content)}\n\n`));
             }
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           } catch (error) {
-            console.error('Stream error:', error);
             controller.error(error);
           } finally {
             controller.close();
@@ -114,70 +71,39 @@ export async function POST(req: Request) {
         }
       });
 
-      return new Response(readableStream, {
+      return new Response(responseStream, {
         headers: {
-          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
+          Connection: 'keep-alive',
+        },
       });
     }
 
-    // Handle non-streaming response
-    const chatCompletion = completion as OpenAI.Chat.Completions.ChatCompletion;
-    if (chatCompletion.choices?.[0]?.message?.content) {
-      const result = chatCompletion.choices[0].message.content;
-      return NextResponse.json({
-        result
-      }, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-      });
+    // ✅ Non-streaming response
+    const completion = await openai.chat.completions.create({
+      model,
+      messages,
+      temperature,
+      max_tokens,
+    });
+
+    if (!completion.choices || completion.choices.length === 0) {
+      throw new Error('Invalid response from OpenAI');
     }
 
-    throw new Error('Invalid response format from OpenAI API');
+    const responseText = completion.choices[0]?.message?.content || 'I am here to assist you!';
+
+    return NextResponse.json({ result: responseText });
 
   } catch (error) {
-    console.error('OpenAI API Error:', error);
-    
-    const statusCode = 500;
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-
-    return NextResponse.json(
-      { error: errorMessage },
-      { 
-        status: statusCode,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
-      }
-    );
+    console.error('🔥 API Error:', error);
+    return NextResponse.json({ error: 'There was an issue processing your request.' }, { status: 500 });
   } finally {
-    // Update rate limiting
-    const current = requestCounts.get(ip) || 0;
-    requestCounts.set(ip, current + 1);
+    // ✅ Proper rate limit tracking
+    requestCounts.set(ip, (requestCounts.get(ip) || 0) + 1);
     setTimeout(() => {
-      const current = requestCounts.get(ip) || 0;
-      requestCounts.set(ip, Math.max(0, current - 1));
+      requestCounts.set(ip, Math.max(0, (requestCounts.get(ip) || 0) - 1));
     }, RATE_LIMIT.windowMs);
   }
-}
-
-// Add CORS headers for preflight requests
-export async function OPTIONS() {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
-  });
 }
