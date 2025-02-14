@@ -52,9 +52,8 @@ const Chatbot = () => {
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder('utf-8');
-      let botMessage = { sender: 'bot', text: '' };
+      const botMessage = { sender: 'bot', text: '' }; // Changed to const
       setMessages((prevMessages) => [...prevMessages, botMessage]);
-
       // Read the streaming response
       while (true) {
         const { done, value } = await reader!.read();

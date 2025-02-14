@@ -23,9 +23,7 @@ export default function Header() {
             <Link href="/pricing" className="text-gray-600 hover:text-blue-600">
               Pricing
             </Link>
-            <Link href="/about" className="text-gray-600 hover:text-blue-600">
-              About
-            </Link>
+
             <Link href="/signin" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
               Sign In
             </Link>
@@ -56,9 +54,7 @@ export default function Header() {
               <Link href="/pricing" className="block text-gray-600 hover:text-blue-600">
                 Pricing
               </Link>
-              <Link href="/about" className="block text-gray-600 hover:text-blue-600">
-                About
-              </Link>
+
               <Link href="/signin" className="w-full bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 block text-center">
                 Sign In
               </Link>

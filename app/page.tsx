@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Chatbot from '@/components/chatbot';
 import Footer from '@/components/Footer';
 
-const MyComponent = () => {
+export default function AboutPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Navigation */}
@@ -81,15 +81,15 @@ const MyComponent = () => {
             className="mt-8 text-left max-w-3xl mx-auto space-y-6"
           >
             <p>
-              <strong>Mission:</strong> To provide cutting-edge solutions that empower 
+              <strong>Mission:</strong> To provide cutting-edge solutions that empower
               businesses to reach their full potential.
             </p>
             <p>
-              <strong>Vision:</strong> To be a global leader in technology services, 
+              <strong>Vision:</strong> To be a global leader in technology services,
               recognized for my commitment to quality and innovation.
             </p>
             <p>
-              With expertise across various industries, I tailor my services to meet 
+              With expertise across various industries, I tailor my services to meet
               your unique needs, ensuring you stay ahead in a competitive landscape.
             </p>
           </motion.div>
@@ -117,7 +117,7 @@ const MyComponent = () => {
             >
               <h3 className="text-2xl font-bold mb-4">Custom Software Development</h3>
               <p className="text-gray-700">
-                Crafting bespoke software solutions that align perfectly 
+                Crafting bespoke software solutions that align perfectly
                 with your business goals and operational needs.
               </p>
             </motion.div>
@@ -130,7 +130,7 @@ const MyComponent = () => {
             >
               <h3 className="text-2xl font-bold mb-4">Cloud Integration</h3>
               <p className="text-gray-700">
-                Seamless integration of cloud services to enhance scalability, 
+                Seamless integration of cloud services to enhance scalability,
                 flexibility, and accessibility of your systems.
               </p>
             </motion.div>
@@ -156,7 +156,7 @@ const MyComponent = () => {
             >
               <h3 className="text-2xl font-bold mb-4">Cybersecurity Solutions</h3>
               <p className="text-gray-700">
-                Implementing robust security measures to protect 
+                Implementing robust security measures to protect
                 your digital assets from evolving cyber threats.
               </p>
             </motion.div>
@@ -169,7 +169,7 @@ const MyComponent = () => {
             >
               <h3 className="text-2xl font-bold mb-4">Mobile App Development</h3>
               <p className="text-gray-700">
-                Creating intuitive and engaging mobile applications 
+                Creating intuitive and engaging mobile applications
                 that enhance customer engagement and grow your business.
               </p>
             </motion.div>
@@ -198,7 +198,7 @@ const MyComponent = () => {
           transition={{ duration: 0.5 }}
           className="text-4xl font-semibold"
         >
-          Contact me
+          Contact Me
         </motion.h2>
         <motion.div
           initial={{ opacity: 0 }}
@@ -207,7 +207,7 @@ const MyComponent = () => {
           className="mt-4 text-lg text-gray-700 max-w-xl mx-auto"
         >
           <p>
-            I am here to answer any questions you might have. 
+            I am here to answer any questions you might have.
             Reach out to me, and I'll respond as soon as I can.
           </p>
           <div className="mt-6 space-y-2">
@@ -235,6 +235,4 @@ const MyComponent = () => {
       <Chatbot />
     </div>
   );
-};
-
-export default MyComponent;
+}
