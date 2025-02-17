@@ -25,7 +25,6 @@ export default function AboutPage() {
             Contact
           </Link>
           <Link href="/faq" className="hover:text-blue-500">FAQ</Link>
-          <Link href="/help" className="hover:text-blue-500">Help</Link>
         </div>
       </nav>
 
