@@ -44,16 +44,6 @@ export default function FAQPage() {
           </div>
         ))}
       </div>
-
-      <div className="mt-6">
-        <p className="text-sm text-gray-600">Need more help?</p>
-        <Link
-          href="/help"
-          className="text-blue-600 underline hover:text-blue-800 transition"
-        >
-          Visit the Help Page
-        </Link>
-      </div>
     </div>
   );
 }
