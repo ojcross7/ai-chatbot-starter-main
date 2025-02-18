@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { AiOutlineSend, AiOutlineMinus, AiOutlineExpand, AiOutlineMessage } from 'react-icons/ai';
+import { AiOutlineSend, AiOutlineMinus, AiOutlineExpand, AiOutlineMessage, AiOutlineQuestion } from 'react-icons/ai';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Message = {
@@ -30,13 +30,14 @@ export default function Chatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (message?: string) => {
+    const text = message || input.trim();
+    if (!text || isLoading) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
       sender: 'user',
-      text: input.trim(),
+      text: text,
     };
 
     setMessages((prev) => [
@@ -49,7 +50,8 @@ export default function Chatbot() {
         status: 'loading',
       },
     ]);
-    setInput('');
+
+    if (!message) setInput('');
     setIsLoading(true);
 
     try {
@@ -63,7 +65,7 @@ export default function Chatbot() {
               role: m.sender === 'user' ? 'user' : 'assistant',
               content: m.text,
             }))
-            .concat({ role: 'user', content: input.trim() }),
+            .concat({ role: 'user', content: text }),
         }),
       });
 
@@ -130,10 +132,24 @@ export default function Chatbot() {
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 flex justify-between items-center rounded-t-xl">
         <h1 className="font-semibold">AI Assistant</h1>
         <div className="flex gap-2">
-          <button onClick={() => setIsExpanded(!isExpanded)} className="hover:bg-white/10 p-1 rounded transition-colors">
+          <button
+            onClick={() => handleSend('What are the most common issues and how can I resolve them?')}
+            disabled={isLoading}
+            className="hover:bg-white/10 p-1 rounded transition-colors"
+            title="AI FAQ"
+          >
+            <AiOutlineQuestion size={18} />
+          </button>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="hover:bg-white/10 p-1 rounded transition-colors"
+          >
             <AiOutlineExpand size={18} />
           </button>
-          <button onClick={() => setIsOpen(false)} className="hover:bg-white/10 p-1 rounded transition-colors">
+          <button
+            onClick={() => setIsOpen(false)}
+            className="hover:bg-white/10 p-1 rounded transition-colors"
+          >
             <AiOutlineMinus size={18} />
           </button>
         </div>
@@ -142,8 +158,17 @@ export default function Chatbot() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <AnimatePresence>
           {messages.map((message) => (
-            <motion.div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] p-3 rounded-2xl ${message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'}`}>
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] p-3 rounded-2xl ${
+                  message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'
+                }`}
+              >
                 <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                 {message.status === 'loading' && <div className="mt-2">...</div>}
               </div>
@@ -162,14 +187,21 @@ export default function Chatbot() {
             placeholder="Ask anything..."
             className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           />
-          <button onClick={handleSend} disabled={isLoading} className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50">
+          <button
+            onClick={() => handleSend()}
+            disabled={isLoading}
+            className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50"
+          >
             <AiOutlineSend size={18} />
           </button>
         </div>
       </div>
     </motion.div>
   ) : (
-    <motion.button onClick={() => setIsOpen(true)} className="fixed bottom-4 right-4 p-4 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all">
+    <motion.button
+      onClick={() => setIsOpen(true)}
+      className="fixed bottom-4 right-4 p-4 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all"
+    >
       <AiOutlineMessage size={24} />
     </motion.button>
   );
